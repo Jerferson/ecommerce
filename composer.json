@@ -1,5 +1,5 @@
 {
-    "name": "Jerferson/ecommerce",
+    "name": "jerferson/ecommerce",
     "authors": [
         {
             "name": "Jerferson Griza",
@@ -13,7 +13,7 @@
     },
     "autoload": {
         "psr-4": {
-            "": "vendor\\dale\\php-classes\\src"
+            "Dale\\": "vendor\\dalebr\\php-classes\\src"
         }
     }
 }
