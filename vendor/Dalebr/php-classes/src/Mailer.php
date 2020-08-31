@@ -9,7 +9,10 @@ class Mailer
 {
     const NAME_FROM = "Dale Store";
 
+    /** @var string E-mail do qual ira enviar */
     private $userEmail;
+
+    /** @var string Senha e-mail  do qual ira enviar*/
     private $password;
 
     private $mail;
@@ -65,6 +68,11 @@ class Mailer
         $this->mail->AltBody = '';
     }
 
+    /**
+     * Função para enviar e-mail
+     * 
+     * @return boolean
+     */
     public function send()
     {
 

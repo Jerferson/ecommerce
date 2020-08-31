@@ -12,6 +12,9 @@ $app = new Slim();
 
 $app->config('debug', true);
 
+/**
+ * @route(/)
+ */
 $app->get('/', function () {
 
     $page = new Page();
@@ -19,6 +22,9 @@ $app->get('/', function () {
     $page->setTpl("index");
 });
 
+/**
+ * @route(/admin)
+ */
 $app->get('/admin', function () {
 
     User::verifyLogin();
@@ -28,6 +34,9 @@ $app->get('/admin', function () {
     $page->setTpl("index");
 });
 
+/**
+ * @route(/admin/login)
+ */
 $app->get('/admin/login', function () {
 
     $page = new PageAdmin([
@@ -38,6 +47,9 @@ $app->get('/admin/login', function () {
     $page->setTpl("login");
 });
 
+/**
+ * @route(/admin/login, post)
+ */
 $app->post('/admin/login', function () {
 
     User::login($_POST["login"], $_POST["password"]);
@@ -46,6 +58,9 @@ $app->post('/admin/login', function () {
     exit;
 });
 
+/**
+ * @route(/admin/logout)
+ */
 $app->get('/admin/logout', function () {
 
     User::logout();
@@ -54,6 +69,9 @@ $app->get('/admin/logout', function () {
     exit;
 });
 
+/**
+ * @route(/admin/users)
+ */
 $app->get('/admin/users', function () {
 
     User::verifyLogin();
@@ -68,6 +86,9 @@ $app->get('/admin/users', function () {
     $page->setTpl("users");
 });
 
+/**
+ * @route(/admin/users/create)
+ */
 $app->get('/admin/users/create', function () {
 
     User::verifyLogin();
@@ -76,6 +97,9 @@ $app->get('/admin/users/create', function () {
     $page->setTpl("users-create");
 });
 
+/**
+ * @route(/admin/users/iduser:/delete)
+ */
 $app->get('/admin/users/:iduser/delete', function ($iduser) {
     User::verifyLogin();
 
@@ -87,6 +111,9 @@ $app->get('/admin/users/:iduser/delete', function ($iduser) {
     exit;
 });
 
+/**
+ * @route(/admin/users/iduser:\d+)
+ */
 $app->get('/admin/users/:iduser', function ($iduser) {
 
     User::verifyLogin();
@@ -100,6 +127,9 @@ $app->get('/admin/users/:iduser', function ($iduser) {
     ));
 });
 
+/**
+ * @route(/admin/users/create, post)
+ */
 $app->post('/admin/users/create', function () {
 
     User::verifyLogin();
@@ -115,6 +145,9 @@ $app->post('/admin/users/create', function () {
     exit;
 });
 
+/**
+ * @route(/admin/users/iduser:\d+, post)
+ */
 $app->post('/admin/users/:iduser', function ($iduser) {
     User::verifyLogin();
 
@@ -129,6 +162,9 @@ $app->post('/admin/users/:iduser', function ($iduser) {
     exit;
 });
 
+/**
+ * @route(/admin/forgot)
+ */
 $app->get('/admin/forgot', function () {
 
     $page = new PageAdmin([
@@ -138,6 +174,9 @@ $app->get('/admin/forgot', function () {
     $page->setTpl("forgot");
 });
 
+/**
+ * @route(/admin/forgot, post)
+ */
 $app->post('/admin/forgot', function () {
 
     $user = User::getForgot($_POST["email"]);
@@ -146,6 +185,9 @@ $app->post('/admin/forgot', function () {
     exit;
 });
 
+/**
+ * @route(/admin/forgot/sent)
+ */
 $app->get('/admin/forgot/sent', function () {
     $page = new PageAdmin([
         "header" => false,
@@ -155,6 +197,9 @@ $app->get('/admin/forgot/sent', function () {
     $page->setTpl("forgot-sent");
 });
 
+/**
+ * @route(/admin/forgot/reset)
+ */
 $app->get('/admin/forgot/reset', function () {
 
     $user = User::validForgotDecrypt($_GET["code"]);
@@ -169,6 +214,9 @@ $app->get('/admin/forgot/reset', function () {
     ));
 });
 
+/**
+ * @route(/admin/forgot/reset, post)
+ */
 $app->post('/admin/forgot/reset', function () {
 
     $forgot = User::validForgotDecrypt($_POST["code"]);

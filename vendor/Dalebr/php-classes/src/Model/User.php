@@ -9,9 +9,15 @@ use \Dale\Model;
 class User extends Model
 {
     const SESSION = "User";
-    const SECRET = "DaleBagualEcommerce"; //Armazenar fora da aplicação
     const SESS_CIPHER = 'BF-ECB';
 
+    /**
+     * Função para listar todos os usuários
+     * 
+     * @param string $login
+     * @param string $password
+     * @return object User
+     */
     public static function login($login, $password)
     {
         $sql = new Sql();
@@ -41,6 +47,12 @@ class User extends Model
         return $user;
     }
 
+    /**
+     * Função para verificar se o usuário está logado
+     * 
+     * @param boolean $inadmin
+     * @return void 
+     */
     public static function verifyLogin($inadmin = true)
     {
         if (
@@ -57,11 +69,21 @@ class User extends Model
         }
     }
 
+    /**
+     * Função para deslogar usuário do sistema
+     * 
+     * @return void 
+     */
     public static function logout()
     {
         $_SESSION[User::SESSION] = NULL;
     }
 
+    /**
+     * Função para listar todos os usuários
+     * 
+     * @return array
+     */
     public static function listAll()
     {
         $sql = new Sql();
@@ -69,6 +91,11 @@ class User extends Model
         return $sql->select("SELECT * FROM tb_users a INNER JOIN tb_persons p USING(idperson) ORDER BY p.desperson");
     }
 
+    /**
+     * Função cadastrar novo usuário
+     * 
+     * @return void 
+     */
     public function save()
     {
         $sql = new Sql();
@@ -87,6 +114,12 @@ class User extends Model
         $this->setData($results[0]);
     }
 
+    /**
+     * Função para buscar usuário pelo ID
+     * 
+     * @param Int $iduser 
+     * @return void 
+     */
     public function get($iduser)
     {
         $sql = new Sql();
@@ -101,6 +134,11 @@ class User extends Model
         $this->setData($results[0]);
     }
 
+    /**
+     * Função para atualizar usuário
+     * 
+     * @return void 
+     */
     public function update()
     {
         $sql = new Sql();
@@ -120,6 +158,11 @@ class User extends Model
         $this->setData($results[0]);
     }
 
+    /**
+     * Função para excluir usuário
+     * 
+     * @return void 
+     */
     public function delete()
     {
         $sql = new Sql();
@@ -129,6 +172,12 @@ class User extends Model
         ));
     }
 
+    /**
+     * Função para enviar e-mail de recuperação de senha
+     * 
+     * @param string $email 
+     * @return string
+     */
     public static function getForgot($email)
     {
 
@@ -162,9 +211,9 @@ class User extends Model
         $dataRecovery = $resultsRecovery[0];
 
         $ivlen = openssl_cipher_iv_length(self::SESS_CIPHER);
-        $iv = substr(md5(User::SECRET), 0, $ivlen);
+        $iv = substr(md5(self::getSecret()), 0, $ivlen);
 
-        $ciphertext = openssl_encrypt($dataRecovery["idrecovery"], self::SESS_CIPHER, User::SECRET, $options = OPENSSL_RAW_DATA, $iv);
+        $ciphertext = openssl_encrypt($dataRecovery["idrecovery"], self::SESS_CIPHER, self::getSecret(), $options = OPENSSL_RAW_DATA, $iv);
 
         $code = base64_encode($ciphertext);
 
@@ -186,15 +235,21 @@ class User extends Model
         return $data;
     }
 
+    /**
+     * Função para descriptografar e validar o código para recuperação de senha
+     * 
+     * @param string $code
+     * @return string
+     */
     public static function validForgotDecrypt($code)
     {
         $code = str_replace(" ", "+", $code);
         $ivlen = openssl_cipher_iv_length(self::SESS_CIPHER);
-        $iv = substr(md5(User::SECRET), 0, $ivlen);
+        $iv = substr(md5(self::getSecret()), 0, $ivlen);
 
         $decoded = base64_decode($code, TRUE);
 
-        $idrecovery = openssl_decrypt($decoded, self::SESS_CIPHER, User::SECRET, $options = OPENSSL_RAW_DATA, $iv);
+        $idrecovery = openssl_decrypt($decoded, self::SESS_CIPHER, self::getSecret(), $options = OPENSSL_RAW_DATA, $iv);
 
         $sql = new Sql();
         $results = $sql->select(
@@ -216,6 +271,12 @@ class User extends Model
         return $results[0];
     }
 
+    /**
+     * Função para invalidar recuperação de senha após ser usada
+     * 
+     * @param Int $idrecovery 
+     * @return void 
+     */
     public static function setForgotUsed($idrecovery)
     {
         $sql = new Sql();
@@ -228,6 +289,22 @@ class User extends Model
         );
     }
 
+    /**
+     * Função para retornar a frase secreta para criptografia
+     * 
+     * @return string 
+     */
+    public static function getSecret()
+    {
+        return getenv('DALE_SESSION_SECRET');
+    }
+
+    /**
+     * Função para setar uma nova senha
+     * 
+     * @param string $password 
+     * @return void 
+     */
     public function setPassword($password)
     {
         $sql = new Sql();
