@@ -3,19 +3,25 @@
 namespace Dale\Model;
 
 use \Dale\DB\Sql;
+use \Dale\Mailer;
 use \Dale\Model;
 
 class User extends Model
 {
     const SESSION = "User";
+    const SECRET = "DaleBagualEcommerce"; //Armazenar fora da aplicação
+    const SESS_CIPHER = 'BF-ECB';
 
     public static function login($login, $password)
     {
         $sql = new Sql();
 
-        $results = $sql->select("SELECT * FROM tb_users WHERE deslogin = :LOGIN", array(
-            ":LOGIN" => $login
-        ));
+        $results = $sql->select(
+            "SELECT * FROM tb_users WHERE deslogin = :LOGIN",
+            array(
+                ":LOGIN" => $login
+            )
+        );
 
         if (count($results) === 0) {
             throw new \Exception();
@@ -23,17 +29,16 @@ class User extends Model
 
         $data = $results[0];
 
-        if (password_verify($password, $data["despassword"])) {
-            $user = new User();
-
-            $user->setData($data);
-
-            $_SESSION[User::SESSION] = $user->getValues();
-
-            return $user;
-        } else {
+        if (!password_verify($password, $data["despassword"])) {
             throw new \Exception("Usuário inexistente ou senha inválida.");
         }
+        $user = new User();
+
+        $user->setData($data);
+
+        $_SESSION[User::SESSION] = $user->getValues();
+
+        return $user;
     }
 
     public static function verifyLogin($inadmin = true)
@@ -68,14 +73,17 @@ class User extends Model
     {
         $sql = new Sql();
 
-        $results =  $sql->select("CALL sp_users_save(:desperson, :deslogin, :despassword, :desemail, :nrphone, :inadmin)", array(
-            ":desperson" => $this->getdesperson(),
-            ":deslogin" => $this->getdeslogin(),
-            ":despassword" => $this->getdespassword(),
-            ":desemail" => $this->getdesemail(),
-            ":nrphone" => $this->getnrphone(),
-            ":inadmin" => $this->getinadmin()
-        ));
+        $results =  $sql->select(
+            "CALL sp_users_save(:desperson, :deslogin, :despassword, :desemail, :nrphone, :inadmin)",
+            array(
+                ":desperson" => $this->getdesperson(),
+                ":deslogin" => $this->getdeslogin(),
+                ":despassword" => $this->getdespassword(),
+                ":desemail" => $this->getdesemail(),
+                ":nrphone" => $this->getnrphone(),
+                ":inadmin" => $this->getinadmin()
+            )
+        );
         $this->setData($results[0]);
     }
 
@@ -83,9 +91,12 @@ class User extends Model
     {
         $sql = new Sql();
 
-        $results = $sql->select("SELECT * FROM tb_users u INNER JOIN tb_persons p USING(idperson) WHERE u.iduser = :iduser", array(
-            ":iduser" => $iduser
-        ));
+        $results = $sql->select(
+            "SELECT * FROM tb_users u INNER JOIN tb_persons p USING(idperson) WHERE u.iduser = :iduser",
+            array(
+                ":iduser" => $iduser
+            )
+        );
 
         $this->setData($results[0]);
     }
@@ -94,15 +105,18 @@ class User extends Model
     {
         $sql = new Sql();
 
-        $results =  $sql->select("CALL sp_usersupdate_save(:iduser, :desperson, :deslogin, :despassword, :desemail, :nrphone, :inadmin)", array(
-            ":iduser" => $this->getiduser(),
-            ":desperson" => $this->getdesperson(),
-            ":deslogin" => $this->getdeslogin(),
-            ":despassword" => $this->getdespassword(),
-            ":desemail" => $this->getdesemail(),
-            ":nrphone" => $this->getnrphone(),
-            ":inadmin" => $this->getinadmin()
-        ));
+        $results =  $sql->select(
+            "CALL sp_usersupdate_save(:iduser, :desperson, :deslogin, :despassword, :desemail, :nrphone, :inadmin)",
+            array(
+                ":iduser" => $this->getiduser(),
+                ":desperson" => $this->getdesperson(),
+                ":deslogin" => $this->getdeslogin(),
+                ":despassword" => $this->getdespassword(),
+                ":desemail" => $this->getdesemail(),
+                ":nrphone" => $this->getnrphone(),
+                ":inadmin" => $this->getinadmin()
+            )
+        );
         $this->setData($results[0]);
     }
 
@@ -113,5 +127,117 @@ class User extends Model
         $sql->select("CALL sp_users_delete(:iduser)", array(
             ":iduser" => $this->getiduser()
         ));
+    }
+
+    public static function getForgot($email)
+    {
+
+        $sql = new Sql();
+
+        $results = $sql->select(
+            "SELECT * FROM tb_persons p INNER JOIN tb_users u USING(idperson) WHERE p.desemail = :desemail",
+            array(
+                ":desemail" => $email
+            )
+        );
+
+        if (count($results) === 0) {
+            throw new \Exception("Não foi possível recuperar a senha.");
+        }
+
+        $data = $results[0];
+
+        $resultsRecovery =  $sql->select(
+            "CALL sp_userspasswordsrecoveries_create(:iduser, :desip)",
+            array(
+                ":iduser" => $data["iduser"],
+                ":desip" => $_SERVER["REMOTE_ADDR"]
+            )
+        );
+
+        if (count($resultsRecovery) === 0) {
+            throw new \Exception("Não foi possível recuperar a senha.");
+        }
+
+        $dataRecovery = $resultsRecovery[0];
+
+        $ivlen = openssl_cipher_iv_length(self::SESS_CIPHER);
+        $iv = substr(md5(User::SECRET), 0, $ivlen);
+
+        $ciphertext = openssl_encrypt($dataRecovery["idrecovery"], self::SESS_CIPHER, User::SECRET, $options = OPENSSL_RAW_DATA, $iv);
+
+        $code = base64_encode($ciphertext);
+
+        $link = "http://www.ecommerce.com.br/admin/forgot/reset?code=$code";
+
+        $mailer = new Mailer(
+            $data['desemail'],
+            $data['desperson'],
+            "Redefinir Senha da Dale Store",
+            "forgot",
+            array(
+                "name" => $data["desperson"],
+                "link" => $link
+            )
+        );
+
+        $mailer->send();
+
+        return $data;
+    }
+
+    public static function validForgotDecrypt($code)
+    {
+        $code = str_replace(" ", "+", $code);
+        $ivlen = openssl_cipher_iv_length(self::SESS_CIPHER);
+        $iv = substr(md5(User::SECRET), 0, $ivlen);
+
+        $decoded = base64_decode($code, TRUE);
+
+        $idrecovery = openssl_decrypt($decoded, self::SESS_CIPHER, User::SECRET, $options = OPENSSL_RAW_DATA, $iv);
+
+        $sql = new Sql();
+        $results = $sql->select(
+            "SELECT * FROM tb_userspasswordsrecoveries ur 
+            INNER JOIN tb_users u USING(iduser)
+            INNER JOIN tb_persons p USING(idperson)
+            WHERE ur.idrecovery  = :idrecovery 
+                AND ur.dtrecovery is null 
+                AND DATE_ADD(ur.dtregister, INTERVAL 1 HOUR) >= NOW();",
+            array(
+                ":idrecovery" => $idrecovery
+            )
+        );
+
+        if (count($results) === 0) {
+            throw new \Exception("Não foi possível recuperar a senha.");
+        }
+
+        return $results[0];
+    }
+
+    public static function setForgotUsed($idrecovery)
+    {
+        $sql = new Sql();
+
+        $results = $sql->query(
+            "UPDATE tb_userspasswordsrecoveries SET dtrecovery = NOW() WHERE idrecovery = :idrecovery",
+            array(
+                ":idrecovery" => $idrecovery
+            )
+        );
+    }
+
+    public function setPassword($password)
+    {
+        $sql = new Sql();
+
+        $results = $sql->query(
+            "UPDATE tb_users SET despassword = :password WHERE iduser = :iduser",
+            array(
+                ":password" => $password,
+                ":iduser" => $this->getiduser()
+            )
+        );
     }
 }
