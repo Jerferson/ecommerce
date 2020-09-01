@@ -23,7 +23,7 @@ class User extends Model
         $sql = new Sql();
 
         $results = $sql->select(
-            "SELECT * FROM tb_users WHERE deslogin = :LOGIN",
+            "SELECT * FROM tb_users WHERE deslogin = :LOGIN AND deleted = 0",
             array(
                 ":LOGIN" => $login
             )
@@ -88,7 +88,7 @@ class User extends Model
     {
         $sql = new Sql();
 
-        return $sql->select("SELECT * FROM tb_users a INNER JOIN tb_persons p USING(idperson) ORDER BY p.desperson");
+        return $sql->select("SELECT * FROM tb_users a INNER JOIN tb_persons p USING(idperson) WHERE a.deleted = 0 ORDER BY p.desperson");
     }
 
     /**
@@ -105,7 +105,9 @@ class User extends Model
             array(
                 ":desperson" => $this->getdesperson(),
                 ":deslogin" => $this->getdeslogin(),
-                ":despassword" => $this->getdespassword(),
+                ":despassword" => password_hash($this->getdespassword(), PASSWORD_DEFAULT, [
+                    "cost" => 12
+                ]),
                 ":desemail" => $this->getdesemail(),
                 ":nrphone" => $this->getnrphone(),
                 ":inadmin" => $this->getinadmin()
@@ -125,7 +127,7 @@ class User extends Model
         $sql = new Sql();
 
         $results = $sql->select(
-            "SELECT * FROM tb_users u INNER JOIN tb_persons p USING(idperson) WHERE u.iduser = :iduser",
+            "SELECT * FROM tb_users u INNER JOIN tb_persons p USING(idperson) WHERE u.iduser = :iduser AND u.deleted = 0",
             array(
                 ":iduser" => $iduser
             )
@@ -167,9 +169,12 @@ class User extends Model
     {
         $sql = new Sql();
 
-        $sql->select("CALL sp_users_delete(:iduser)", array(
-            ":iduser" => $this->getiduser()
-        ));
+        $results = $sql->query(
+            "UPDATE tb_users SET deleted = 1 WHERE iduser = :iduser",
+            array(
+                ":iduser" =>  $this->getiduser()
+            )
+        );
     }
 
     /**
@@ -184,7 +189,7 @@ class User extends Model
         $sql = new Sql();
 
         $results = $sql->select(
-            "SELECT * FROM tb_persons p INNER JOIN tb_users u USING(idperson) WHERE p.desemail = :desemail",
+            "SELECT * FROM tb_persons p INNER JOIN tb_users u USING(idperson) WHERE p.desemail = :desemail AND u.deleted = 0",
             array(
                 ":desemail" => $email
             )
@@ -258,6 +263,7 @@ class User extends Model
             INNER JOIN tb_persons p USING(idperson)
             WHERE ur.idrecovery  = :idrecovery 
                 AND ur.dtrecovery is null 
+                AND u.deleted = 0
                 AND DATE_ADD(ur.dtregister, INTERVAL 1 HOUR) >= NOW();",
             array(
                 ":idrecovery" => $idrecovery
