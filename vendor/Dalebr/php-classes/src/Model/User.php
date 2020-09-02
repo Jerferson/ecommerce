@@ -288,7 +288,7 @@ class User extends Model
         $sql = new Sql();
 
         $results = $sql->query(
-            "UPDATE tb_userspasswordsrecoveries SET dtrecovery = NOW() WHERE idrecovery = :idrecovery",
+            "UPDATE tb_userspasswordsrecoveries SET dtrecovery = NOW() WHERE idrecovery = :idrecovery;",
             array(
                 ":idrecovery" => $idrecovery
             )
@@ -316,7 +316,7 @@ class User extends Model
         $sql = new Sql();
 
         $results = $sql->query(
-            "UPDATE tb_users SET despassword = :password WHERE iduser = :iduser",
+            "UPDATE tb_users SET despassword = :password WHERE iduser = :iduser;",
             array(
                 ":password" => $password,
                 ":iduser" => $this->getiduser()

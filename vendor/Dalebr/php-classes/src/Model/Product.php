@@ -17,7 +17,7 @@ class Product extends Model
     {
         $sql = new Sql();
 
-        return $sql->select("SELECT * FROM tb_products ORDER BY desproduct");
+        return $sql->select("SELECT * FROM tb_products ORDER BY desproduct;");
     }
 
     /**
@@ -48,7 +48,7 @@ class Product extends Model
         $sql = new Sql();
 
         $results =  $sql->select(
-            "CALL sp_products_save(:idproduct, :desproduct, :vlprice, :vlwidth, :vlheight, :vllength, :vlweight, :desurl)",
+            "CALL sp_products_save(:idproduct, :desproduct, :vlprice, :vlwidth, :vlheight, :vllength, :vlweight, :desurl);",
             array(
                 ":idproduct" => $this->getidproduct(),
                 ":desproduct" => $this->getdesproduct(),
@@ -74,7 +74,7 @@ class Product extends Model
         $sql = new Sql();
 
         $results = $sql->select(
-            "SELECT * FROM tb_products WHERE idproduct = :idproduct",
+            "SELECT * FROM tb_products WHERE idproduct = :idproduct;",
             array(
                 ":idproduct" => $idproduct
             )
@@ -93,7 +93,7 @@ class Product extends Model
         $sql = new Sql();
 
         $results = $sql->query(
-            "DELETE FROM tb_products WHERE idproduct = :idproduct",
+            "DELETE FROM tb_products WHERE idproduct = :idproduct;",
             array(
                 ":idproduct" =>  $this->getidproduct()
             )

@@ -1,6 +1,7 @@
 <?php
 
 use Dale\Model\Category;
+use Dale\Model\Product;
 use Dale\Model\User;
 use Dale\Page;
 use Dale\PageAdmin;
@@ -100,18 +101,66 @@ $app->post('/admin/categories/:idcategory', function ($idcategory) {
 });
 
 /**
- * @route(/categories/idcategory:\d+)
+ * @route(/admin/categories/idcategory:/products)
  * 
  * @param int $idcategory
  */
-$app->get('/categories/:idcategory', function ($idcategory) {
+$app->get('/admin/categories/:idcategory/products', function ($idcategory) {
+
+    User::verifyLogin();
 
     $category = new Category();
     $category->get((int)$idcategory);
 
-    $page = new Page();
-    $page->setTpl("category", [
+    $page = new PageAdmin();
+    $page->setTpl("categories-products", [
         'category' => $category->getValues(),
-        'products' => []
+        'productsRelated' => $category->getProducts(),
+        'productsNotRelated' => $category->getProducts(false)
     ]);
+});
+
+/**
+ * @route(/admin/categories/idcategory:/products/:idproduct/add)
+ * 
+ * @param int $idcategory
+ */
+$app->get('/admin/categories/:idcategory/products/:idproduct/add', function ($idcategory, $idproduct) {
+
+    User::verifyLogin();
+
+    $category = new Category();
+    $category->get((int)$idcategory);
+
+    $product = new Product();
+
+    $product->get((int)$idproduct);
+
+    $category->addProduct($product);
+
+    header("Location: /admin/categories/" . $idcategory . "/products");
+    exit;
+});
+
+/**
+ * @route(/admin/categories/idcategory:/products/:idproduct/remove)
+ * 
+ * @param int $idcategory
+ * @param int $idproduct
+ */
+$app->get('/admin/categories/:idcategory/products/:idproduct/remove', function ($idcategory, $idproduct) {
+
+    User::verifyLogin();
+
+    $category = new Category();
+    $category->get((int)$idcategory);
+
+    $product = new Product();
+
+    $product->get((int)$idproduct);
+
+    $category->removeProduct($product);
+
+    header("Location: /admin/categories/" . $idcategory . "/products");
+    exit;
 });

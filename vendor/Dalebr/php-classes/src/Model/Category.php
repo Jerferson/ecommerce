@@ -17,7 +17,7 @@ class Category extends Model
     {
         $sql = new Sql();
 
-        return $sql->select("SELECT * FROM tb_categories ORDER BY descategory");
+        return $sql->select("SELECT * FROM tb_categories ORDER BY descategory;");
     }
 
     /**
@@ -30,7 +30,7 @@ class Category extends Model
         $sql = new Sql();
 
         $results =  $sql->select(
-            "CALL sp_categories_save(:idcategory, :descategory)",
+            "CALL sp_categories_save(:idcategory, :descategory);",
             array(
                 ":idcategory" => $this->getidcategory(),
                 ":descategory" => $this->getdescategory()
@@ -52,7 +52,7 @@ class Category extends Model
         $sql = new Sql();
 
         $results = $sql->select(
-            "SELECT * FROM tb_categories WHERE idcategory = :idcategory",
+            "SELECT * FROM tb_categories WHERE idcategory = :idcategory;",
             array(
                 ":idcategory" => $idcategory
             )
@@ -71,7 +71,7 @@ class Category extends Model
         $sql = new Sql();
 
         $results = $sql->query(
-            "DELETE FROM tb_categories WHERE idcategory = :idcategory",
+            "DELETE FROM tb_categories WHERE idcategory = :idcategory;",
             array(
                 ":idcategory" =>  $this->getidcategory()
             )
@@ -96,5 +96,79 @@ class Category extends Model
         }
 
         file_put_contents($_SERVER['DOCUMENT_ROOT'] . DIRECTORY_SEPARATOR . "views" . DIRECTORY_SEPARATOR . "categories-menu.html", implode('', $html));
+    }
+
+    /**
+     * Função para retornar todos os produtos que est~]ao ou não relacionados a categoria
+     * 
+     * @param boolean $related
+     * @return array  
+     */
+    public function getProducts($related = true)
+    {
+        $sql = new Sql();
+
+        if ($related) {
+
+            return $sql->select(
+                "SELECT * FROM tb_products where idproduct IN(
+                SELECT p.idproduct
+                FROM tb_products p
+                INNER JOIN tb_productscategories pc ON p.idproduct = pc.idproduct
+                WHERE pc.idcategory = :idcategory);",
+                array(
+                    ":idcategory" =>  $this->getidcategory()
+                )
+            );
+        }
+
+        return $sql->select(
+            "SELECT * FROM tb_products where idproduct NOT IN(
+                SELECT p.idproduct
+                FROM tb_products p
+                INNER JOIN tb_productscategories pc ON p.idproduct = pc.idproduct
+                WHERE pc.idcategory = :idcategory);",
+            array(
+                ":idcategory" =>  $this->getidcategory()
+            )
+        );
+    }
+
+    /**
+     * Função para retornar todos os produtos que est~]ao ou não relacionados a categoria
+     * 
+     * @param int $product
+     * @return array  
+     */
+    public function addProduct(Product $product)
+    {
+        $sql = new Sql();
+
+        $sql->query(
+            "INSERT INTO tb_productscategories (idcategory, idproduct) VALUES(:idcategory, :idproduct);",
+            array(
+                ':idcategory' => $this->getidcategory(),
+                ':idproduct' => $product->getidproduct()
+            )
+        );
+    }
+
+    /**
+     * Função para retornar todos os produtos que est~]ao ou não relacionados a categoria
+     * 
+     * @param int $product
+     * @return array  
+     */
+    public function removeProduct(Product $product)
+    {
+        $sql = new Sql();
+
+        $sql->query(
+            "DELETE FROM tb_productscategories WHERE idcategory = :idcategory AND idproduct = :idproduct;",
+            array(
+                ':idcategory' => $this->getidcategory(),
+                ':idproduct' => $product->getidproduct()
+            )
+        );
     }
 }
