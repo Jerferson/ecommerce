@@ -154,6 +154,40 @@ class Category extends Model
     }
 
     /**
+     * Função para retornar produtos com paginação
+     * 
+     * @param int $page
+     * @param int $itemsPerPage
+     * @return array  
+     */
+    public function getProductsPage($page = 1, $itemsPerPage = 3)
+    {
+        $start = ($page - 1) * $itemsPerPage;
+
+        $sql = new Sql();
+
+        $results = $sql->select(
+            "SELECT SQL_CALC_FOUND_ROWS *
+                FROM tb_products p
+                INNER JOIN tb_productscategories pc ON p.idproduct = pc.idproduct
+                inner join tb_categories c ON c.idcategory = pc.idcategory 
+                WHERE pc.idcategory = :idcategory
+                LIMIT $start, $itemsPerPage;",
+            array(
+                ':idcategory' => $this->getidcategory()
+            )
+        );
+
+        $resultsTotal = $sql->select("SELECT FOUND_ROWS() AS nrtotal;");
+
+        return [
+            'data' => Product::checkList($results),
+            'total' => (int)$resultsTotal[0]['nrtotal'],
+            'pages' => ceil((int)$resultsTotal[0]['nrtotal'] / $itemsPerPage)
+        ];
+    }
+
+    /**
      * Função para retornar todos os produtos que est~]ao ou não relacionados a categoria
      * 
      * @param int $product
