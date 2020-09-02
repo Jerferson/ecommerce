@@ -21,6 +21,24 @@ class Product extends Model
     }
 
     /**
+     * Função para fazer o checkList dos produtos e carregar a imagem
+     * 
+     * @param array $list
+     * @return array 
+     */
+    public static function checkList($list)
+    {
+        foreach ($list as &$row) {
+
+            $p = new Product();
+            $p->setData($row);
+            $row = $p->getValues();
+        }
+
+        return $list;
+    }
+
+    /**
      * Função cadastrar/edita produto
      * 
      * @return void 
@@ -85,7 +103,7 @@ class Product extends Model
     /**
      * Função retornar o caminho da imagem
      * 
-     * @return string 
+     * @return void
      */
     public function checkPhoto()
     {
@@ -118,5 +136,44 @@ class Product extends Model
         $values = parent::getValues();
 
         return $values;
+    }
+
+    /**
+     * Função para salvar foto
+     * 
+     * @return void
+     */
+    public function setPhoto($file)
+    {
+        $extension = explode('.', $file['name']);
+        $extension = end($extension);
+
+        switch ($extension) {
+            case "jpg":
+            case "jpeg":
+                $image = imagecreatefromjpeg($file["tmp_name"]);
+                break;
+
+            case "gif":
+                $image = imagecreatefromgif($file["tmp_name"]);
+                break;
+
+            case "png":
+                $image = imagecreatefrompng($file["tmp_name"]);
+                break;
+        }
+
+        $dist =  $_SERVER['DOCUMENT_ROOT'] . DIRECTORY_SEPARATOR .
+            "res" . DIRECTORY_SEPARATOR .
+            "site" . DIRECTORY_SEPARATOR .
+            "img" . DIRECTORY_SEPARATOR .
+            "products" . DIRECTORY_SEPARATOR .
+            $this->getidproduct() . ".jpg";
+
+        imagejpeg($image, $dist);
+
+        imagedestroy($image);
+
+        $this->checkPhoto();
     }
 }

@@ -1,5 +1,6 @@
 <?php
 
+use Dale\Model\Product;
 use Dale\Page;
 
 /**
@@ -7,7 +8,10 @@ use Dale\Page;
  */
 $app->get('/', function () {
 
-    $page = new Page();
+    $products = Product::listAll();
 
-    $page->setTpl("index");
+    $page = new Page();
+    $page->setTpl("index", [
+        'products' => Product::checkList($products)
+    ]);
 });

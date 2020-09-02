@@ -95,6 +95,11 @@ $app->post('/admin/products/:idproduct', function ($idproduct) {
     $product->setData($_POST);
     $product->save();
 
+    if ($_FILES["file"]["size"] > 0) {
+
+        $product->setPhoto($_FILES["file"]);
+    }
+
     header("Location: /admin/products");
     exit;
 });
