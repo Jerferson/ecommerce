@@ -12,6 +12,50 @@ class User extends Model
     const SESS_CIPHER = 'BF-ECB';
 
     /**
+     * Função para retornar o usuário da sessão
+     * 
+     * @return object User
+     */
+    public static function getFromSession()
+    {
+
+        $user = new User();
+
+        if (isset($_SESSION[User::SESSION]) && (int)$_SESSION[User::SESSION]['iduser'] > 0) {
+            $user->setData($_SESSION[User::SESSION]);
+        }
+
+        return $user;
+    }
+
+    /**
+     * Função para verificar se o usuário está logado e está tentando acessar uma rota de administração
+     * 
+     * @param boolean $inadmin Deve ser TRUE se está navegando na administração
+     * @return object User
+     */
+    public static function checkLogin($inadmin = true)
+    {
+        if (
+            !isset($_SESSION[User::SESSION])
+            ||
+            !$_SESSION[User::SESSION]
+            ||
+            !(int)$_SESSION[User::SESSION]["iduser"] > 0
+        ) {
+            //Não está logado
+            return false;
+        }
+
+        if ($inadmin  && (bool)$_SESSION[User::SESSION]['inadmin']) {
+            // Admin e está logado
+            return true;
+        }
+
+        return !$inadmin;
+    }
+
+    /**
      * Função para listar todos os usuários
      * 
      * @param string $login
@@ -48,22 +92,14 @@ class User extends Model
     }
 
     /**
-     * Função para verificar se o usuário está logado
+     * Função para verificar se o usuário está logado e está tentando acessar uma rota de administração. Else redireciona para login
      * 
      * @param boolean $inadmin
      * @return void 
      */
     public static function verifyLogin($inadmin = true)
     {
-        if (
-            !isset($_SESSION[User::SESSION])
-            ||
-            !$_SESSION[User::SESSION]
-            ||
-            !(int)$_SESSION[User::SESSION]["iduser"] > 0
-            ||
-            (bool)$_SESSION[User::SESSION]["inadmin"] !== $inadmin
-        ) {
+        if (User::checkLogin($inadmin)) {
             header("Location: /admin/login");
             exit;
         }

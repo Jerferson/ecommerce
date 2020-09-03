@@ -1,5 +1,6 @@
 <?php
 
+use Dale\Model\Cart;
 use Dale\Model\Category;
 use Dale\Model\Product;
 use Dale\Page;
@@ -65,4 +66,15 @@ $app->get('/products/:desurl', function ($desurl) {
         'product' => $product->getValues(),
         'categories' => $product->getCategories()
     ]);
+});
+
+/**
+ * @route(/cart)
+ */
+$app->get('/cart', function () {
+
+    $cart = Cart::getFromSession();
+
+    $page = new Page();
+    $page->setTpl("cart");
 });
