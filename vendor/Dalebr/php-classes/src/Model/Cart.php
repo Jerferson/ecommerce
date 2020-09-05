@@ -10,6 +10,8 @@ class Cart extends Model
 
     /** @var SESSION Nome da sessão que guarda o carrinho de compras */
     const SESSION = "Cart";
+    /** @var SESSION_ERROR Nome da sessão que guarda os erros do carrinho de compras */
+    const SESSION_ERROR = "CartError";
 
     /**
      * Função para retornar o carrinho de compras
@@ -134,6 +136,8 @@ class Cart extends Model
                 ":idproduct" => $product->getidproduct()
             )
         );
+
+        $this->getCalculateToral();
     }
 
     /**
@@ -162,6 +166,8 @@ class Cart extends Model
                 ":idproduct" => $product->getidproduct()
             )
         );
+
+        $this->getCalculateToral();
     }
 
     /**
@@ -187,5 +193,167 @@ class Cart extends Model
         );
 
         return  Product::checkList($results);
+    }
+
+    /**
+     * Função resgatar os  totais dos produtos do banco de dado.
+     * 
+     * @return Product[] 
+     */
+    public function getProductsTotals()
+    {
+        $sql = new Sql();
+
+        $results = $sql->select(
+            "SELECT SUM(vlprice) AS vlprice,
+                    SUM(vlwidth) AS vlwidth,
+                    SUM(vlheight) AS vlheight,
+                    SUM(vllength) AS vllength,
+                    SUM(vlweight) AS vlweight,
+                    COUNT(*) AS nrqtd
+            FROM tb_products p
+            INNER JOIN tb_cartsproducts cp ON p.idproduct = cp.idproduct 
+            WHERE cp.idcart = :idcart AND dtremoved IS NULL;",
+            array(
+                ":idcart" => $this->getidcart()
+            )
+        );
+
+        if (count($results) > 0) {
+            return $results[0];
+        }
+
+        return  [];
+    }
+
+    /**
+     * Função resgatar os  totais dos produtos do banco de dados e fazer a consulta nos correios
+     * 
+     * @param string $nrzipcode
+     * @return Product[] 
+     */
+    public function setFreight($nrzipcode)
+    {
+        $nrzipcode = str_replace('-', '', $nrzipcode);
+
+        $totals = $this->getProductsTotals();
+
+        if ($totals['nrqtd'] > 0) {
+
+            if ($totals['vlheight'] < 2) $totals['vlheight'] = 2;
+            if ($totals['vllength'] < 16) $totals['vllength'] = 16;
+
+            $qs = http_build_query([
+                'nCdEmpresa' => '',
+                'sDsSenha' => '',
+                'nCdServico' => '40010',
+                'sCepOrigem' => '89680000',
+                'sCepDestino' => $nrzipcode,
+                'nVlPeso' => $totals['vlweight'],
+                'nCdFormato' => '1',
+                'nVlComprimento' => $totals['vllength'],
+                'nVlAltura' => $totals['vlheight'],
+                'nVlLargura' => $totals['vlwidth'],
+                'nVlDiametro' => '0',
+                'sCdMaoPropria' => 'S',
+                'nVlValorDeclarado' => $totals['vlprice'],
+                'sCdAvisoRecebimento' => 'S',
+            ]);
+
+            $xml = simplexml_load_file("http://ws.correios.com.br/calculador/CalcPrecoPrazo.asmx/CalcPrecoPrazo?" . $qs);
+
+            $results = $xml->Servicos->cServico;
+
+            Cart::clearMsgError();
+            if ($results->MsgErro != '') {
+
+                Cart::setMsgError((string)$results->MsgErro);
+            }
+
+            $this->setnrdays($results->PrazoEntrega);
+            $this->setvlfreight(Cart::formatValueToDecimal($results->Valor));
+            $this->setdeszipcode($nrzipcode);
+            $this->save();
+
+            return $results;
+        }
+    }
+
+    /**
+     * Função para converter valor para decimal
+     * 
+     * @param string $value
+     * @return float 
+     */
+    public static function formatValueToDecimal($value): float
+    {
+        $value = str_replace('.', '', $value);
+        return str_replace(',', '.', $value);
+    }
+
+    /**
+     * Função para armazenar os erros na sessão
+     * 
+     * @param string $msg
+     */
+    public static function setMsgError($msg)
+    {
+
+        $_SESSION[Cart::SESSION_ERROR] = $msg;
+    }
+
+    /**
+     * Função para resgatar os erros na sessão
+     * 
+     * @return string
+     */
+    public static function getMsgError()
+    {
+        $msg =  (isset($_SESSION[Cart::SESSION_ERROR])) ?  $_SESSION[Cart::SESSION_ERROR] : '';
+
+        Cart::clearMsgError();
+
+        return $msg;
+    }
+
+    /**
+     * Função para limpar os erros da sessão
+     */
+    public static function clearMsgError()
+    {
+        $_SESSION[Cart::SESSION_ERROR] = NULL;
+    }
+
+    /**
+     * Função recalcuylar o frete quando existe alteração na lista de produtos
+     */
+    public function updateFreight()
+    {
+        if ($this->getdeszipcode() != '') {
+            $this->setFreight($this->getdeszipcode());
+        }
+    }
+
+    /**
+     * Função que sobrescreve a função que é herdada
+     * 
+     * @return array
+     */
+    public function getValues()
+    {
+        $this->getCalculateToral();
+        return parent::getValues();
+    }
+
+    /**
+     * Função que calcula os valores subtotal e total do carrinho
+     */
+    public function getCalculateToral()
+    {
+        $this->updateFreight();
+        $totals = $this->getProductsTotals();
+
+        $this->setvlsubtotal($totals['vlprice']);
+        $this->setvltotal($totals['vlprice'] + $this->getvlfreight());
     }
 }
