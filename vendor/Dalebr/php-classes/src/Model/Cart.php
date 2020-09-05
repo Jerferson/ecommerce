@@ -117,4 +117,75 @@ class Cart extends Model
         );
         $this->setData($results[0]);
     }
+
+    /**
+     * Função para adicionar o produto n carrinho
+     * 
+     * @return void 
+     */
+    public function addProduct(Product $product)
+    {
+        $sql = new Sql();
+
+        $results =  $sql->query(
+            "INSERT INTO tb_cartsproducts (idcart, idproduct) VALUES(:idcart, :idproduct);",
+            array(
+                ":idcart" => $this->getidcart(),
+                ":idproduct" => $product->getidproduct()
+            )
+        );
+    }
+
+    /**
+     * Função para remover o produto do carrinho. Por default é removido um item por vez
+     * 
+     * @param Product $product
+     * @param booleano $all
+     * @return void 
+     */
+    public function removeProduct(Product $product, $all = false)
+    {
+        $sql = new Sql();
+
+        $limit = ' LIMIT 1';
+        if ($all) {
+            $limit = '';
+        }
+
+        $sql->query(
+            "UPDATE tb_cartsproducts SET dtremoved = NOW() 
+                WHERE idcart = :idcart 
+                    AND idproduct = :idproduct 
+                    AND dtremoved IS NULL {$limit};",
+            array(
+                ":idcart" => $this->getidcart(),
+                ":idproduct" => $product->getidproduct()
+            )
+        );
+    }
+
+    /**
+     * Função resgatar todos os produtos do banco de dados.
+     * 
+     * @return Product[] 
+     */
+    public function getProducts()
+    {
+        $sql = new Sql();
+
+        $results = $sql->select(
+            "SELECT p.idproduct, p.desproduct, p.vlprice, p.vlwidth, p.vlheight, p.vllength, p.vlweight, p.desurl,  COUNT(*) AS nrqtd, SUM(p.vlprice) AS vltotal
+                FROM tb_cartsproducts cp
+                INNER JOIN tb_products p ON cp.idproduct = p.idproduct 
+                WHERE cp.idcart = :idcart 
+                    AND dtremoved IS NULL 
+                    GROUP BY p.idproduct, p.desproduct, p.vlprice, p.vlwidth, p.vlheight, p.vllength, p.vlweight, p.desurl
+                    ORDER BY p.desproduct;",
+            array(
+                ":idcart" => $this->getidcart()
+            )
+        );
+
+        return  Product::checkList($results);
+    }
 }
