@@ -5,11 +5,12 @@ use Dale\Model\User;
 /**
  * Função para fazer o checkList dos produtos e carregar a imagem
  * 
- * @param float $vlprice
+ * @param  $vlprice
  * @return float 
  */
-function formatPrice(float $vlprice)
+function formatPrice($vlprice)
 {
+    if (!$vlprice) $vlprice = 0;
     return number_format($vlprice, 2, ",", ".");
 }
 

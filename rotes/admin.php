@@ -50,7 +50,6 @@ $app->get('/admin/logout', function () {
     exit;
 });
 
-
 /**
  * @route(/admin/forgot)
  */

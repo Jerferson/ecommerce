@@ -228,7 +228,7 @@ class User extends Model
      * @param string $email 
      * @return string
      */
-    public static function getForgot($email)
+    public static function getForgot($email, $inadmin = true)
     {
 
         $sql = new Sql();
@@ -267,7 +267,10 @@ class User extends Model
 
         $code = base64_encode($ciphertext);
 
-        $link = "http://www.ecommerce.com.br/admin/forgot/reset?code=$code";
+        $link = "http://www.ecommerce.com.br/forgot/reset?code=$code";
+        if ($inadmin) {
+            $link = "http://www.ecommerce.com.br/admin/forgot/reset?code=$code";
+        }
 
         $mailer = new Mailer(
             $data['desemail'],
