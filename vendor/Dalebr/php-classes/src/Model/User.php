@@ -11,6 +11,7 @@ class User extends Model
     const SESSION = "User";
     const SESS_CIPHER = 'BF-ECB';
     const ERROR = 'UserError';
+    const ERROR_REGISTER = 'errorRegister';
 
     /**
      * Função para retornar o usuário da sessão
@@ -81,14 +82,12 @@ class User extends Model
         }
 
         $data = $results[0];
+        $data['desperson'] = utf8_encode($data['desperson']);
 
         if (!password_verify($password, $data["despassword"])) {
             throw new \Exception("Usuário inexistente ou senha inválida.");
         }
         $user = new User();
-
-        $data['desperson'] = utf8_encode($data['desperson']);
-
         $user->setData($data);
 
         $_SESSION[User::SESSION] = $user->getValues();
@@ -177,7 +176,6 @@ class User extends Model
         );
 
         $data = $results[0];
-
         $data['desperson'] = utf8_encode($data['desperson']);
 
         $this->setData($data);
@@ -404,6 +402,38 @@ class User extends Model
     }
 
     /**
+     * Função para armazenar os erros de registro na sessão
+     * 
+     * @param string $errorMessage
+     */
+    public static function setErrorRegister($errorMessage)
+    {
+        $_SESSION[User::ERROR_REGISTER] = $errorMessage;
+    }
+
+    /**
+     * Função para resgatar os erros de registro na sessão
+     * 
+     * @return string
+     */
+    public static function getErrorRegister()
+    {
+        $errorMessage =  (isset($_SESSION[User::ERROR_REGISTER])) ?  $_SESSION[User::ERROR_REGISTER] : '';
+
+        User::clearErrorRegister();
+
+        return $errorMessage;
+    }
+
+    /**
+     * Função para limpar os erros de gegistro da sessão
+     */
+    public static function clearErrorRegister()
+    {
+        $_SESSION[User::ERROR_REGISTER] = NULL;
+    }
+
+    /**
      * Função para encriptografar a senha
      * 
      * @param string $password
@@ -414,5 +444,25 @@ class User extends Model
         return password_hash($password, PASSWORD_DEFAULT, [
             "cost" => 12
         ]);
+    }
+
+    /**
+     * Função verificar se o login já existe no banco de dados
+     * 
+     * @param string $login
+     * @return boolean
+     */
+    public static function checkLoginExist($login)
+    {
+        $sql = new Sql();
+
+        $results = $sql->select(
+            "SELECT * FROM tb_users u WHERE u.deslogin = :deslogin ",
+            array(
+                ":deslogin" => $login
+            )
+        );
+
+        return (count($results) > 0);
     }
 }
