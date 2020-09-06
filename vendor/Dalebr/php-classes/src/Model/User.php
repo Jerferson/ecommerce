@@ -10,6 +10,7 @@ class User extends Model
 {
     const SESSION = "User";
     const SESS_CIPHER = 'BF-ECB';
+    const ERROR = 'UserError';
 
     /**
      * Função para retornar o usuário da sessão
@@ -67,14 +68,16 @@ class User extends Model
         $sql = new Sql();
 
         $results = $sql->select(
-            "SELECT * FROM tb_users WHERE deslogin = :LOGIN AND deleted = 0",
+            "SELECT * FROM tb_users u
+            INNER JOIN tb_persons p ON u.idperson = p.idperson
+            WHERE u.deslogin = :LOGIN AND u.deleted = 0",
             array(
                 ":LOGIN" => $login
             )
         );
 
         if (count($results) === 0) {
-            throw new \Exception();
+            throw new \Exception("Usuário inexistente ou senha inválida.");
         }
 
         $data = $results[0];
@@ -83,6 +86,8 @@ class User extends Model
             throw new \Exception("Usuário inexistente ou senha inválida.");
         }
         $user = new User();
+
+        $data['desperson'] = utf8_encode($data['desperson']);
 
         $user->setData($data);
 
@@ -99,8 +104,12 @@ class User extends Model
      */
     public static function verifyLogin($inadmin = true)
     {
-        if (User::checkLogin($inadmin)) {
-            header("Location: /admin/login");
+        if (!User::checkLogin($inadmin)) {
+            if ($inadmin) {
+                header("Location: /admin/login");
+                exit;
+            }
+            header("Location: /login");
             exit;
         }
     }
@@ -139,11 +148,9 @@ class User extends Model
         $results =  $sql->select(
             "CALL sp_users_save(:desperson, :deslogin, :despassword, :desemail, :nrphone, :inadmin)",
             array(
-                ":desperson" => $this->getdesperson(),
+                ":desperson" => utf8_decode($this->getdesperson()),
                 ":deslogin" => $this->getdeslogin(),
-                ":despassword" => password_hash($this->getdespassword(), PASSWORD_DEFAULT, [
-                    "cost" => 12
-                ]),
+                ":despassword" => User::getPasswordHash($this->getdespassword()),
                 ":desemail" => $this->getdesemail(),
                 ":nrphone" => $this->getnrphone(),
                 ":inadmin" => $this->getinadmin()
@@ -169,7 +176,11 @@ class User extends Model
             )
         );
 
-        $this->setData($results[0]);
+        $data = $results[0];
+
+        $data['desperson'] = utf8_encode($data['desperson']);
+
+        $this->setData($data);
     }
 
     /**
@@ -185,9 +196,9 @@ class User extends Model
             "CALL sp_usersupdate_save(:iduser, :desperson, :deslogin, :despassword, :desemail, :nrphone, :inadmin)",
             array(
                 ":iduser" => $this->getiduser(),
-                ":desperson" => $this->getdesperson(),
+                ":desperson" => utf8_decode($this->getdesperson()),
                 ":deslogin" => $this->getdeslogin(),
-                ":despassword" => $this->getdespassword(),
+                ":despassword" => User::getPasswordHash($this->getdespassword()),
                 ":desemail" => $this->getdesemail(),
                 ":nrphone" => $this->getnrphone(),
                 ":inadmin" => $this->getinadmin()
@@ -354,9 +365,54 @@ class User extends Model
         $results = $sql->query(
             "UPDATE tb_users SET despassword = :password WHERE iduser = :iduser;",
             array(
-                ":password" => $password,
+                ":password" => User::getPasswordHash($password),
                 ":iduser" => $this->getiduser()
             )
         );
+    }
+
+    /**
+     * Função para armazenar os erros na sessão
+     * 
+     * @param string $errorMessage
+     */
+    public static function setError($errorMessage)
+    {
+        $_SESSION[User::ERROR] = $errorMessage;
+    }
+
+    /**
+     * Função para resgatar os erros na sessão
+     * 
+     * @return string
+     */
+    public static function getError()
+    {
+        $errorMessage =  (isset($_SESSION[User::ERROR])) ?  $_SESSION[User::ERROR] : '';
+
+        User::clearError();
+
+        return $errorMessage;
+    }
+
+    /**
+     * Função para limpar os erros da sessão
+     */
+    public static function clearError()
+    {
+        $_SESSION[User::ERROR] = NULL;
+    }
+
+    /**
+     * Função para encriptografar a senha
+     * 
+     * @param string $password
+     * @return string
+     */
+    public static function getPasswordHash($password)
+    {
+        return password_hash($password, PASSWORD_DEFAULT, [
+            "cost" => 12
+        ]);
     }
 }
