@@ -12,6 +12,7 @@ class User extends Model
     const SESS_CIPHER = 'BF-ECB';
     const ERROR = 'UserError';
     const ERROR_REGISTER = 'errorRegister';
+    const SUCCESS = 'success';
 
     /**
      * Função para retornar o usuário da sessão
@@ -202,7 +203,9 @@ class User extends Model
                 ":inadmin" => $this->getinadmin()
             )
         );
+
         $this->setData($results[0]);
+        $_SESSION[User::SESSION] = $results[0];
     }
 
     /**
@@ -467,5 +470,37 @@ class User extends Model
         );
 
         return (count($results) > 0);
+    }
+
+    /**
+     * Função para armazenar os erros de registro na sessão
+     * 
+     * @param string $message
+     */
+    public static function setSuccess($message)
+    {
+        $_SESSION[User::SUCCESS] = $message;
+    }
+
+    /**
+     * Função para resgatar os erros de registro na sessão
+     * 
+     * @return string
+     */
+    public static function getSuccess()
+    {
+        $message =  (isset($_SESSION[User::SUCCESS])) ?  $_SESSION[User::SUCCESS] : '';
+
+        User::clearSuccess();
+
+        return $message;
+    }
+
+    /**
+     * Função para limpar os erros de gegistro da sessão
+     */
+    public static function clearSuccess()
+    {
+        $_SESSION[User::SUCCESS] = NULL;
     }
 }
