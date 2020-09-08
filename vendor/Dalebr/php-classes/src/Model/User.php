@@ -525,4 +525,34 @@ class User extends Model
 
         return $results;
     }
+
+    /**
+     * Função para retornar usuários com paginação
+     * 
+     * @param string $search
+     * @param int $page
+     * @param int $itemsPerPage
+     * @return array  
+     */
+    public static function getPage($search = '', $page = 1, $itemsPerPage = 10)
+    {
+        $start = ($page - 1) * $itemsPerPage;
+
+        $sql = new Sql();
+        $results = $sql->select(
+            "SELECT SQL_CALC_FOUND_ROWS * FROM tb_users a
+                INNER JOIN tb_persons p USING(idperson)
+                WHERE a.deleted = 0 AND (p.desperson LIKE '%$search%'  OR a.deslogin LIKE '%$search%'  OR p.desemail = '$search'  )
+                ORDER BY p.desperson
+                LIMIT $start, $itemsPerPage;"
+        );
+
+        $resultsTotal = $sql->select("SELECT FOUND_ROWS() AS nrtotal;");
+
+        return [
+            'data' => $results,
+            'total' => (int)$resultsTotal[0]['nrtotal'],
+            'pages' => ceil((int)$resultsTotal[0]['nrtotal'] / $itemsPerPage)
+        ];
+    }
 }
