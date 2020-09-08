@@ -1,5 +1,6 @@
 <?php
 
+use Dale\Model\Cart;
 use Dale\Model\User;
 
 /**
@@ -34,4 +35,28 @@ function getUserName()
 {
     $user = User::getFromSession();
     return $user->getdesperson();
+}
+
+/**
+ * Função para retornar o número de itens dentro do carrinho
+ * 
+ * @return string 
+ */
+function getCartNrQtd()
+{
+    $cart = Cart::getFromSession();
+    $totals = $cart->getProductsTotals();
+    return $totals['nrqtd'];
+}
+
+/**
+ * Função para retornar o Valor dos itens dentro do carrinho sem valor do frete
+ * 
+ * @return string 
+ */
+function getCartVlSubtotal()
+{
+    $cart = Cart::getFromSession();
+    $totals = $cart->getProductsTotals();
+    return formatPrice($totals['vlprice']);
 }
