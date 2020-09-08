@@ -15,5 +15,7 @@ require_once("rotes/admin.php");
 require_once("rotes/admin-users.php");
 require_once("rotes/admin-categories.php");
 require_once("rotes/admin-products.php");
+require_once("rotes/site-cart.php");
+require_once("rotes/site-user.php");
 
 $app->run();

@@ -3,6 +3,8 @@
 use Dale\Model\Address;
 use Dale\Model\Cart;
 use Dale\Model\Category;
+use Dale\Model\Order;
+use Dale\Model\OrderStatus;
 use Dale\Model\Product;
 use Dale\Model\User;
 use Dale\Page;
@@ -68,89 +70,6 @@ $app->get('/products/:desurl', function ($desurl) {
         'product' => $product->getValues(),
         'categories' => $product->getCategories()
     ]);
-});
-
-/**
- * @route(/cart)
- */
-$app->get('/cart', function () {
-
-    $cart = Cart::getFromSession();
-
-    $page = new Page();
-    $page->setTpl("cart", [
-        'cart' => $cart->getValues(),
-        'products' => $cart->getProducts(),
-        'error' => Cart::getMsgError()
-    ]);
-});
-
-/**
- * @route(/cart/idproduct:/add)
- * 
- * @param int $idproduct
- */
-$app->get('/cart/:idproduct/add', function ($idproduct) {
-
-    $product = new Product();
-    $product->get((int)$idproduct);
-
-    $qtd = (isset($_GET['qtd'])) ? (int)$_GET['qtd'] : 1;
-
-    $cart = Cart::getFromSession();
-    for ($i = 0; $i < $qtd; $i++) {
-        $cart->addProduct($product);
-    }
-
-    header("Location: /cart");
-    exit;
-});
-
-/**
- * @route(/cart/idproduct:/minus)
- * 
- * @param int $idproduct
- */
-$app->get('/cart/:idproduct/minus', function ($idproduct) {
-
-    $product = new Product();
-    $product->get((int)$idproduct);
-
-    $cart = Cart::getFromSession();
-    $cart->removeProduct($product);
-
-    header("Location: /cart");
-    exit;
-});
-
-/**
- * @route(/cart/idproduct:/remove)
- * 
- * @param int $idproduct
- */
-$app->get('/cart/:idproduct/remove', function ($idproduct) {
-
-    $product = new Product();
-    $product->get((int)$idproduct);
-
-    $cart = Cart::getFromSession();
-    $cart->removeProduct($product, true);
-
-    header("Location: /cart");
-    exit;
-});
-
-/**
- * @route(/cart/freight, post)
- * 
- */
-$app->post('/cart/freight', function () {
-
-    $cart = Cart::getFromSession();
-    $cart->setFreight($_POST['zipcode']);
-
-    header("Location: /cart");
-    exit;
 });
 
 /**
@@ -248,50 +167,23 @@ $app->post('/checkout', function () {
     $address->setData($_POST);
     $address->save();
 
-    header("Location: /order");
-    exit;
-});
+    $cart = Cart::getFromSession();
 
-/**
- * @route(/login)
- * 
- */
-$app->get('/login', function () {
+    $totals = $cart->getCalculateToral();
 
-    $page = new Page();
-    $page->setTpl('login', [
-        'error' => User::getError(),
-        'errorRegister' => User::getErrorRegister(),
-        'registerValues' => (isset($_SESSION['registerValues'])) ? $_SESSION['registerValues'] : ['name' => '', 'email' => '', 'phone' => '']
+    $order = new Order();
+
+    $order->setData([
+        'idcart' => $cart->getidcart(),
+        'iduser' => $user->getiduser(),
+        'idstatus' => OrderStatus::EM_ABERTO,
+        'idaddress' => $address->getidaddress(),
+        'vltotal' => $cart->getvltotal()
     ]);
 
-    $_SESSION['registerValues'] = NULL;
-});
+    $order->save();
 
-/**
- * @route(/login, post)
- */
-$app->post('/login', function () {
-
-    try {
-
-        User::login($_POST['login'], $_POST['password']);
-    } catch (Exception $e) {
-
-        User::setError($e->getMessage());
-    }
-
-    header("Location: /checkout");
-    exit;
-});
-
-/**
- * @route(/logout)
- */
-$app->get('/logout', function () {
-
-    User::logout();
-    header("Location: /login");
+    header("Location: /order/" . $order->getidorder());
     exit;
 });
 
@@ -344,67 +236,6 @@ $app->post('/register', function () {
     exit;
 });
 
-
-/**
- * @route(/forgot)
- */
-$app->get('/forgot', function () {
-
-    $page = new Page();
-    $page->setTpl("forgot");
-});
-
-/**
- * @route(/forgot, post)
- */
-$app->post('/forgot', function () {
-
-    $user = User::getForgot($_POST["email"], false);
-
-    header("Location: /forgot/sent");
-    exit;
-});
-
-/**
- * @route(/forgot/sent)
- */
-$app->get('/forgot/sent', function () {
-    $page = new Page();
-
-    $page->setTpl("forgot-sent");
-});
-
-/**
- * @route(/forgot/reset)
- */
-$app->get('/forgot/reset', function () {
-
-    $user = User::validForgotDecrypt($_GET["code"]);
-    $page = new Page();
-
-    $page->setTpl("forgot-reset", array(
-        "name" => $user["desperson"],
-        "code" => $_GET["code"]
-    ));
-});
-
-/**
- * @route(/forgot/reset, post)
- */
-$app->post('/forgot/reset', function () {
-
-    $forgot = User::validForgotDecrypt($_POST["code"]);
-
-    User::setForgotUsed($forgot["idrecovery"]);
-
-    $user = new User();
-    $user->get((int)$forgot["iduser"]);
-
-    $user->setPassword($_POST["password"]);
-
-    $page = new Page();
-    $page->setTpl("forgot-reset-success");
-});
 
 /**
  * @route(/profile)
@@ -468,4 +299,93 @@ $app->post('/profile', function () {
         "profileMsg" => User::getSuccess(),
         "profileError" => User::getError()
     ));
+});
+
+/**
+ * @route(/order)
+ */
+$app->get('/order/:idorder', function ($idorder) {
+
+    User::verifyLogin(false);
+
+    $order = new Order();
+
+    $order->get((int)$idorder);
+
+    $page = new Page();
+
+    $page->setTpl("payment", array(
+        "order" => $order->getValues()
+    ));
+});
+
+/**
+ * @route(/order)
+ */
+$app->get('/boleto/:idorder', function ($idorder) {
+    User::verifyLogin(false);
+
+    $order = new Order();
+    $order->get((int)$idorder);
+
+    // DADOS DO BOLETO PARA O SEU CLIENTE
+    $dias_de_prazo_para_pagamento = 10;
+    $taxa_boleto = 5.00;
+    $data_venc = date("d/m/Y", time() + ($dias_de_prazo_para_pagamento * 86400));  // Prazo de X dias OU informe data: "13/04/2006"; 
+    // $valor_cobrado = $order->getvltotal(); // Valor - REGRA: Sem pontos na milhar e tanto faz com "." ou "," ou com 1 ou 2 ou sem casa decimal
+    // $valor_cobrado = str_replace(".", "", $valor_cobrado);
+    // $valor_cobrado = str_replace(",", ".", $valor_cobrado);
+    $valor_boleto = number_format($order->getvltotal() + $taxa_boleto, 2, ',', '');
+
+    $dadosboleto["nosso_numero"] = $order->getidorder();  // Nosso numero - REGRA: Máximo de 8 caracteres!
+    $dadosboleto["numero_documento"] = $order->getidorder();    // Num do pedido ou nosso numero
+    $dadosboleto["data_vencimento"] = $data_venc; // Data de Vencimento do Boleto - REGRA: Formato DD/MM/AAAA
+    $dadosboleto["data_documento"] = date("d/m/Y"); // Data de emissão do Boleto
+    $dadosboleto["data_processamento"] = date("d/m/Y"); // Data de processamento do boleto (opcional)
+    $dadosboleto["valor_boleto"] = $valor_boleto;     // Valor do Boleto - REGRA: Com vírgula e sempre com duas casas depois da virgula
+
+    // DADOS DO SEU CLIENTE
+    $dadosboleto["sacado"] = $order->getdesperson();
+    $dadosboleto["endereco1"] = $order->getdesaddress() . " " . $order->getdesdistrict();
+    $dadosboleto["endereco2"] = $order->getdescity() . " - " . $order->getdesstate() . " - " . $order->getdescountry() . " - CEP: " . $order->getdeszipcode();
+
+    // INFORMACOES PARA O CLIENTE
+    $dadosboleto["demonstrativo1"] = "Pagamento de Compra na Loja Dale E-commerce";
+    $dadosboleto["demonstrativo2"] = "Taxa bancária - R$ 0,00";
+    $dadosboleto["demonstrativo3"] = "";
+    $dadosboleto["instrucoes1"] = "- Sr. Caixa, cobrar multa de 2% após o vencimento";
+    $dadosboleto["instrucoes2"] = "- Receber até 10 dias após o vencimento";
+    $dadosboleto["instrucoes3"] = "- Em caso de dúvidas entre em contato conosco: dale.suport@gmail.com";
+    $dadosboleto["instrucoes4"] = "&nbsp; Emitido pelo sistema Loja Dale E-commerce - www.dalebagual.com.br";
+
+    // DADOS OPCIONAIS DE ACORDO COM O BANCO OU CLIENTE
+    $dadosboleto["quantidade"] = "";
+    $dadosboleto["valor_unitario"] = "";
+    $dadosboleto["aceite"] = "";
+    $dadosboleto["especie"] = "R$";
+    $dadosboleto["especie_doc"] = "";
+
+
+    // ---------------------- DADOS FIXOS DE CONFIGURAÇÃO DO SEU BOLETO --------------- //
+
+
+    // DADOS DA SUA CONTA - ITAÚ
+    $dadosboleto["agencia"] = "0000"; // Num da agencia, sem digito
+    $dadosboleto["conta"] = "00000";    // Num da conta, sem digito
+    $dadosboleto["conta_dv"] = "8";     // Digito do Num da conta
+
+    // DADOS PERSONALIZADOS - ITAÚ
+    $dadosboleto["carteira"] = "175";  // Código da Carteira: pode ser 175, 174, 104, 109, 178, ou 157
+
+    // SEUS DADOS
+    $dadosboleto["identificacao"] = "Fulano de Tal";
+    $dadosboleto["cpf_cnpj"] = "000.000.000-00";
+    $dadosboleto["endereco"] = "Rua Frei Eurico de Melo, 55 , 81250-615";
+    $dadosboleto["cidade_uf"] = "Curitiba - PR";
+    $dadosboleto["cedente"] = "DALE STORE";
+
+    // NÃO ALTERAR!
+    $path = $_SERVER['DOCUMENT_ROOT'] . DIRECTORY_SEPARATOR . "res" . DIRECTORY_SEPARATOR . "boletophp" . DIRECTORY_SEPARATOR . "include" . DIRECTORY_SEPARATOR;
+    require_once($path . "funcoes_itau.php");
+    require_once($path . "layout_itau.php");
 });

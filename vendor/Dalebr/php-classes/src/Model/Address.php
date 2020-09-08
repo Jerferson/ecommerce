@@ -7,7 +7,6 @@ use \Dale\Model;
 
 class Address extends Model
 {
-
     const ERROR = 'AddressError';
 
     /**
