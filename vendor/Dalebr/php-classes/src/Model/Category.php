@@ -214,7 +214,7 @@ class Category extends Model
      * @param int $itemsPerPage
      * @return array  
      */
-    public static function getPage($search = '', $page = 1, $itemsPerPage = 2)
+    public static function getPage($search = '', $page = 1, $itemsPerPage = 10)
     {
         $start = ($page - 1) * $itemsPerPage;
 
