@@ -205,4 +205,33 @@ class Category extends Model
             )
         );
     }
+
+    /**
+     * Função para retornar categorias com paginação
+     * 
+     * @param string $search
+     * @param int $page
+     * @param int $itemsPerPage
+     * @return array  
+     */
+    public static function getPage($search = '', $page = 1, $itemsPerPage = 2)
+    {
+        $start = ($page - 1) * $itemsPerPage;
+
+        $sql = new Sql();
+        $results = $sql->select(
+            "SELECT SQL_CALC_FOUND_ROWS * FROM tb_categories c
+                WHERE c.descategory LIKE '%$search%'
+                ORDER BY c.descategory
+                LIMIT $start, $itemsPerPage;"
+        );
+
+        $resultsTotal = $sql->select("SELECT FOUND_ROWS() AS nrtotal;");
+
+        return [
+            'data' => $results,
+            'total' => (int)$resultsTotal[0]['nrtotal'],
+            'pages' => ceil((int)$resultsTotal[0]['nrtotal'] / $itemsPerPage)
+        ];
+    }
 }
