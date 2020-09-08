@@ -16,6 +16,17 @@ function formatPrice($vlprice)
 }
 
 /**
+ * Função para formatar data d/m/Y
+ * 
+ * @param  date $date
+ * @return string 
+ */
+function formatDate($date)
+{
+    return date('d/m/Y', strtotime($date));
+}
+
+/**
  * Função para verificar usuário está logado dentro do template
  * 
  * @param booleano $inadmin
