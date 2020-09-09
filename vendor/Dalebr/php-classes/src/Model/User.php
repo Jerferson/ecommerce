@@ -207,7 +207,6 @@ class User extends Model
         );
 
         $this->setData($results[0]);
-        $_SESSION[User::SESSION] = $results[0];
     }
 
     /**

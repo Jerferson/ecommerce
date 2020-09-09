@@ -16,8 +16,7 @@
                     <div class="box-header with-border">
                         <h3 class="box-title">Editar Usuário</h3>
                     </div>
-                    <!-- /.box-header -->
-                    <!-- form start -->
+
                     <form role="form" action="/admin/users/{$user.iduser}" method="post">
                         <div class="box-body">
                             <div class="form-group">
@@ -42,12 +41,11 @@
                             </div>
                             <div class="checkbox">
                                 <label>
-                                    <input type="checkbox" name="inadmin" value="1" {if="$user.inadmin == 1"
-                                        }checked{/if}> Acesso de Administrador
+                                    <input type="checkbox" name="inadmin" id="inadmin" value="{$user.inadmin}"> Acesso
+                                    de Administrador
                                 </label>
                             </div>
                         </div>
-                        <!-- /.box-body -->
                         <div class="box-footer">
                             <button type="submit" class="btn btn-primary">Salvar</button>
                         </div>
@@ -59,4 +57,11 @@
     </section>
     <!-- /.content -->
 </div>
-<!-- /.content-wrapper -->
+<script>
+    window.onload = function () {
+        var inadmin = document.getElementById("inadmin")
+        if (inadmin.value == 1) {
+            inadmin.checked = true;
+        }
+    };
+</script>
