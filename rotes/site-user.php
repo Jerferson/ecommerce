@@ -149,6 +149,13 @@ $app->post('/profile/change-password', function () {
         exit;
     }
 
+    // Verifica se o usuário digitou a nova senha e a confirmação iguais
+    if ($_POST['new_pass'] !== $_POST['new_pass-confirm']) {
+        User::setError("Sua nova senha e a confirmação devem ser iguais.");
+        header("Location: /profile/change-password");
+        exit;
+    }
+
     $user = User::getFromSession();
 
     // Verifica se o usuário digitou a senha é válida
@@ -158,7 +165,7 @@ $app->post('/profile/change-password', function () {
         exit;
     }
 
-    // Verifica se o usuário digitou a senha é igual a nova senha
+    // Verifica se o usuário digitou a senha igual a senha anterior
     if ($_POST['current_pass'] === $_POST['new_pass']) {
         User::setError("Sua nova senha deve ser diferente da atual.");
         header("Location: /profile/change-password");

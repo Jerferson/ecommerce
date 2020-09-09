@@ -175,11 +175,13 @@ class User extends Model
                 ":iduser" => $iduser
             )
         );
+        if (count($results) > 0) {
 
-        $data = $results[0];
-        $data['desperson'] = utf8_encode($data['desperson']);
+            $data = $results[0];
+            $data['desperson'] = utf8_encode($data['desperson']);
 
-        $this->setData($data);
+            $this->setData($data);
+        }
     }
 
     /**

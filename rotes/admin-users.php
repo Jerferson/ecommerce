@@ -4,6 +4,83 @@ use Dale\Model\User;
 use Dale\PageAdmin;
 
 /**
+ * @route(/admin/users/iduser:/password)
+ * 
+ * @param int $iduser
+ */
+$app->get('/admin/users/:iduser/password', function ($iduser) {
+    User::verifyLogin();
+
+    $user = new User();
+    $user->get((int)$iduser);
+
+    $page = new PageAdmin();
+    $page->setTpl("users-password", array(
+        "user" => $user->getValues(),
+        "msgError" => User::getError(),
+        "msgSuccess" => User::getSuccess()
+    ));
+});
+
+/**
+ * @route(/admin/users/iduser:/password, post)
+ * 
+ * @param int $iduser
+ */
+$app->post('/admin/users/:iduser/password', function ($iduser) {
+
+    User::verifyLogin();
+
+    // Verifica se o usuário digitou a nova senha
+    if (!isset($_POST['despassword']) || $_POST['despassword'] === '') {
+        User::setError("Digite a nova senha.");
+        header("Location: /admin/users/$iduser/password");
+        exit;
+    }
+
+    // Verifica se o usuário digitou a nova senha e a confirmação iguais
+    if (!isset($_POST['despassword-confirm']) || $_POST['despassword-confirm'] === '') {
+        User::setError("Confirme a nova senha.");
+        header("Location: /admin/users/$iduser/password");
+        exit;
+    }
+
+    // Verifica se o usuário digitou a nova senha e a confirmação iguais
+    if ($_POST['despassword'] !== $_POST['despassword-confirm']) {
+        User::setError("Sua nova senha e a confirmação devem ser iguais.");
+        header("Location: /admin/users/$iduser/password");
+        exit;
+    }
+
+
+    $user = new User();
+    $user->get((int)$iduser);
+
+    $user->setPassword($_POST['despassword']);
+
+    User::setSuccess('Senha alterada com sucesso.');
+
+    header("Location: /admin/users/$iduser/password");
+    exit;
+});
+
+/**
+ * @route(/admin/users/iduser:/delete)
+ * 
+ * @param int $iduser
+ */
+$app->get('/admin/users/:iduser/delete', function ($iduser) {
+    User::verifyLogin();
+
+    $user = new User();
+    $user->get((int)$iduser);
+
+    $user->delete();
+    header("Location: /admin/users");
+    exit;
+});
+
+/**
  * @route(/admin/users)
  */
 $app->get('/admin/users', function () {
@@ -46,21 +123,6 @@ $app->get('/admin/users/create', function () {
     $page->setTpl("users-create");
 });
 
-/**
- * @route(/admin/users/iduser:/delete)
- * 
- * @param int $iduser
- */
-$app->get('/admin/users/:iduser/delete', function ($iduser) {
-    User::verifyLogin();
-
-    $user = new User();
-    $user->get((int)$iduser);
-
-    $user->delete();
-    header("Location: /admin/users");
-    exit;
-});
 
 /**
  * @route(/admin/users/iduser:\d+)
