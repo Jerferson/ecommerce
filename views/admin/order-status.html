@@ -41,7 +41,7 @@
                                 <label for="desproduct">Status do Pedido</label>
                                 <select class="form-control" name="idstatus">
                                     {loop="$status"}
-                                    <option {if="$value.idstatus === $order.idstatus" }selected="selected" {/if}
+                                    <option {if="$value.idstatus === $order.idstatus" }selected="selected"
                                         value="{$value.idstatus}">{$value.desstatus}</option>
                                     {/loop}
                                 </select>
